@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>JussyGUI User Dashboard</title>
+<style>
+  body {
+    background: #1e1e2f;
+    color: #eee;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0; padding: 20px;
+  }
+  h1 {
+    text-align: center;
+    color: #7df9ff;
+    margin-bottom: 1em;
+  }
+  .stats {
+    display: flex;
+    justify-content: center;
+    gap: 2em;
+    margin-bottom: 2em;
+  }
+  .stat-box {
+    background: #2c2c4a;
+    padding: 1.5em 2em;
+    border-radius: 12px;
+    box-shadow: 0 0 10px #7df9ffaa;
+    text-align: center;
+    min-width: 140px;
+  }
+  .stat-box h2 {
+    margin: 0;
+    font-size: 2.5em;
+    color: #7df9ff;
+  }
+  .stat-box p {
+    margin: 0;
+    font-weight: 600;
+    color: #ccc;
+  }
+  .user-list {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  .user-card {
+    background: #2c2c4a;
+    padding: 1em 1.2em;
+    border-radius: 10px;
+    margin-bottom: 0.8em;
+    box-shadow: 0 0 8px #7df9ff88;
+    display: flex;
+    justify-content: space-between;
+    font-weight: 600;
+  }
+  .user-name {
+    color: #b3fff3;
+  }
+  .user-time {
+    color: #88e8ff;
+    font-size: 0.9em;
+  }
+  footer {
+    text-align: center;
+    margin-top: 3em;
+    color: #555;
+    font-size: 0.9em;
+  }
+</style>
+</head>
+<body>
+
+<h1>🎯 JussyGUI User Dashboard</h1>
+
+<div class="stats">
+  <div class="stat-box">
+    <h2 id="totalUsers">0</h2>
+    <p>Total Users</p>
+  </div>
+  <div class="stat-box">
+    <h2 id="hourUsers">0</h2>
+    <p>Users Last Hour</p>
+  </div>
+</div>
+
+<div class="user-list" id="userList">
+  <!-- Latest user cards will appear here -->
+</div>
+
+<footer>Made with ❤️ by Jussy</footer>
+
+<script>
+  const API_URL = 'https://sheetdb.io/api/v1/1tdsj9wjn6cue';
+
+  async function fetchUsers() {
+    try {
+      const res = await fetch(API_URL);
+      const data = await res.json();
+
+      // SheetDB returns data in data array
+      const users = data.data || [];
+
+      // Remove duplicates by UserId (keeping latest)
+      const userMap = new Map();
+      users.forEach(u => {
+        userMap.set(u.UserId, u);
+      });
+
+      // Total unique users
+      const totalUsers = userMap.size;
+      document.getElementById('totalUsers').textContent = totalUsers;
+
+      // Filter users from last 1 hour
+      const oneHourAgo = Date.now() - (60 * 60 * 1000);
+      const usersLastHour = users.filter(u => {
+        const t = new Date(u.Time).getTime();
+        return t >= oneHourAgo;
+      });
+
+      // Unique users last hour
+      const hourUserMap = new Map();
+      usersLastHour.forEach(u => hourUserMap.set(u.UserId, u));
+      document.getElementById('hourUsers').textContent = hourUserMap.size;
+
+      // Sort users by Time descending
+      const sortedUsers = [...users].sort((a, b) => new Date(b.Time) - new Date(a.Time));
+
+      // Show last 10 users
+      const recentUsers = sortedUsers.slice(0, 10);
+
+      const userList = document.getElementById('userList');
+      userList.innerHTML = '';
+
+      recentUsers.forEach(u => {
+        const div = document.createElement('div');
+        div.className = 'user-card';
+        div.innerHTML = `<span class="user-name">${u.Username}</span><span class="user-time">${new Date(u.Time).toLocaleString()}</span>`;
+        userList.appendChild(div);
+      });
+
+    } catch (err) {
+      console.error('Failed to fetch user data:', err);
+      document.getElementById('userList').textContent = 'Failed to load data.';
+    }
+  }
+
+  fetchUsers();
+  setInterval(fetchUsers, 30000); // Refresh every 30 seconds
+</script>
+
+</body>
+</html>
